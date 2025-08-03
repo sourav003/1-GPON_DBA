@@ -46,6 +46,9 @@ class ONU : public cSimpleModule
 
         simsignal_t latencySignal;
 
+    public:
+        virtual ~ONU();
+
     protected:
         // The following redefined virtual function holds the algorithm.
         virtual void initialize() override;
@@ -65,6 +68,20 @@ void ONU::initialize()
 
     gate("inSrc")->setDeliverImmediately(true);
     gate("SpltGate_i")->setDeliverImmediately(true);
+}
+
+ONU::~ONU()
+{
+    // Clean up queues
+    while (!queue_TC1.isEmpty()) {
+        delete queue_TC1.pop();
+    }
+    while (!queue_TC2.isEmpty()) {
+        delete queue_TC2.pop();
+    }
+    while (!queue_TC3.isEmpty()) {
+        delete queue_TC3.pop();
+    }
 }
 
 void ONU::handleMessage(cMessage *msg)
@@ -129,37 +146,70 @@ void ONU::handleMessage(cMessage *msg)
 
             cMessage *send_ul_payload = new cMessage("send_ul_payload");            // send uplink data
             scheduleAt(gtc_hdr_ul->getSendingTime()+Txtime, send_ul_payload);
+            EV << "[onu" << getIndex() << "] send_ul_payload first time created and scheduled!" << endl;
 
             //EV << "[onu" << getIndex() << "] latest pending_buffer_TC3: " << pending_buffer_TC3 << endl;
         }
         else if(strcmp(msg->getName(),"send_ul_payload") == 0) {
             if((onu_grant_TC3 > 0)&&(pending_buffer_TC3 > 0)) {
-                ethPacket *front = (ethPacket *)queue_TC3.front();
-                if(front->getByteLength() <= onu_grant_TC3) {                // check if the first packet can be sent now
-                    ethPacket *data = (ethPacket *)queue_TC3.pop();          // pop and send the packet
-                    onu_grant_TC3 -= data->getByteLength();
-                    pending_buffer_TC3 -= data->getByteLength();
+                if(!queue_TC3.isEmpty()) {
+                    ethPacket *front = (ethPacket *)queue_TC3.front();
+                    if(front->getByteLength() <= onu_grant_TC3) {                // check if the first packet can be sent now
+                        ethPacket *data = (ethPacket *)queue_TC3.pop();          // pop and send the packet
+                        onu_grant_TC3 -= data->getByteLength();
+                        pending_buffer_TC3 -= data->getByteLength();
 
-                    EV << "[onu" << getIndex() << "] Sending ul payload: " << data->getByteLength() << ", pending_buffer_TC3 = " << pending_buffer_TC3 << ", onu_grant_TC3 = " << onu_grant_TC3 << endl;
-                    send(data,"SpltGate_o");
-                    data->setOnuDepartureTime(data->getSendingTime());
+                        EV << "[onu" << getIndex() << "] Sending ul payload: " << data->getByteLength() << ", pending_buffer_TC3 = " << pending_buffer_TC3 << ", onu_grant_TC3 = " << onu_grant_TC3 << endl;
+                        send(data,"SpltGate_o");
+                        data->setOnuDepartureTime(data->getSendingTime());
 
-                    double packet_latency = data->getOnuDepartureTime().dbl() - data->getOnuArrivalTime().dbl();
-                    EV << "[onu" << getIndex() << "] packet_latency: " << packet_latency << endl;
-                    emit(latencySignal,packet_latency);
+                        double packet_latency = data->getOnuDepartureTime().dbl() - data->getOnuArrivalTime().dbl();
+                        EV << "[onu" << getIndex() << "] packet_latency: " << packet_latency << endl;
+                        emit(latencySignal,packet_latency);
 
-                    // rescheduling send_ul_payload to send the consecutive queued packets
-                    simtime_t Txtime = (simtime_t)(data->getBitLength()/pon_link_datarate);
-                    scheduleAt(data->getSendingTime()+Txtime,msg);
-                }
-                else {      // if the remaining grant is insufficient to send the next packet
-                    EV << "[onu" << getIndex() << "] ul transmission finished at: " << simTime() << endl;
-                    cancelAndDelete(msg);   // cleaning up packetSend msg
+                        // rescheduling send_ul_payload to send the consecutive queued packets
+                        simtime_t Txtime = (simtime_t)(data->getBitLength()/pon_link_datarate);
+                        scheduleAt(data->getSendingTime()+Txtime,msg);
+                        EV << "[onu" << getIndex() << "] send_ul_payload re-scheduled!" << endl;
+                    }
+                    else {      // if the remaining grant is insufficient to send the next packet
+                        EV << "[onu" << getIndex() << "] onu_grant_TC3: " << onu_grant_TC3 << " is insufficient to send a complete packet!" << endl;
+                        if (!queue_TC3.isEmpty()) {
+                            ethPacket *data = (ethPacket *)queue_TC3.pop();          // pop and send the packet
+                            double pkt_size = data->getByteLength();
+                            ethPacket *copy = data->dup();                            // creating a copy for all and sending immediately
+                            copy->setByteLength(onu_grant_TC3);
+                            int fragment_count = data->getFragmentCount()+1;
+                            copy->setFragmentCount(fragment_count);
+                            data->setFragmentCount(fragment_count);
+
+                            send(copy,"SpltGate_o");
+                            copy->setOnuDepartureTime(copy->getSendingTime());
+
+                            data->setByteLength(pkt_size - onu_grant_TC3);
+                            if(!queue_TC3.isEmpty()) {
+                                queue_TC3.insertBefore(queue_TC3.front(), data);
+                            }
+                            else {
+                                queue_TC3.insert(data);
+                            }
+                            EV << "[onu" << getIndex() << "] sent fragmented packet of size: " << onu_grant_TC3 << " and en-queued packet of size = " << data->getByteLength() << endl;
+
+                            onu_grant_TC3 = 0;          // grant exhausted!
+                            pending_buffer_TC3 -= copy->getByteLength();
+
+                            /*double packet_latency = copy->getOnuDepartureTime().dbl() - copy->getOnuArrivalTime().dbl();
+                            EV << "[onu" << getIndex() << "] packet_latency: " << packet_latency << endl;
+                            emit(latencySignal,packet_latency); */
+                        }
+                        delete msg;   // cleaning up packetSend msg
+                        EV << "[onu" << getIndex() << "] ul transmission finished at: " << simTime() << endl;
+                    }
                 }
             }
             else {                      // either grant <= 0 or pending_buffer = 0
                 EV << "[onu" << getIndex() << "] ul transmission finished at: " << simTime() << endl;
-                cancelAndDelete(msg);   // cleaning up packetSend msg
+                delete msg;   // cleaning up packetSend msg
             }
         }
     }

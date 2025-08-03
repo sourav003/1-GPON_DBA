@@ -92,8 +92,8 @@ void BackgroundDevice::handleMessage(cMessage *msg)
 
 ethPacket *BackgroundDevice::generateNewPacket()
 {
-    //int pkt_size = intuniform(64,1542);
-    int pkt_size = intuniform(64,1000);             // for testing 1:16 1-GPON without fragmentation
+    int pkt_size = intuniform(64,1542);
+    //int pkt_size = intuniform(64,1000);             // for testing 1:16 1-GPON without fragmentation
     ethPacket *pkt = new ethPacket("bkg_data");
     pkt->setByteLength(pkt_size);                   // adding a random size payload to the packet
     pkt->setGenerationTime(simTime());

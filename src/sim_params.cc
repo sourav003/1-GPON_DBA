@@ -19,8 +19,8 @@ double pon_link_datarate = 1.244e9;                                     // PON l
 double max_polling_cycle = 125e-6;                                      // maximum polling cycle duration
 
 int const pkt_sz_min = 64;                                              // Ethernet packet size - minimum (bytes)
-//int const pkt_sz_max = 1542;                                            // Ethernet packet size - maximum (bytes)
-int const pkt_sz_max = 1000;                                            // // for testing 1:16 1-GPON without fragmentation
+int const pkt_sz_max = 1542;                                            // Ethernet packet size - maximum (bytes)
+//int const pkt_sz_max = 1000;                                            // // for testing 1:16 1-GPON without fragmentation
 int pkt_sz_avg = ceil((pkt_sz_min + pkt_sz_max)/2);                     // Average packet size (bytes)
 
 double onu_buffer_capacity = 100e6;                                     // ONU buffer capacity (bytes)

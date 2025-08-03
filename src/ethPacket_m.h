@@ -29,6 +29,7 @@ class ethPacket;
  * 
  *     int OnuId;							// intended receipient ONU
  *     int TContId;						// T-CONT type
+ *     int FragmentCount = 0;				// id of fragmented packet
  * }
  * </pre>
  */
@@ -41,6 +42,7 @@ class ethPacket : public ::omnetpp::cPacket
     omnetpp::simtime_t OltArrivalTime = SIMTIME_ZERO;
     int OnuId = 0;
     int TContId = 0;
+    int FragmentCount = 0;
 
   private:
     void copy(const ethPacket& other);
@@ -74,6 +76,9 @@ class ethPacket : public ::omnetpp::cPacket
 
     virtual int getTContId() const;
     virtual void setTContId(int TContId);
+
+    virtual int getFragmentCount() const;
+    virtual void setFragmentCount(int FragmentCount);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const ethPacket& obj) {obj.parsimPack(b);}

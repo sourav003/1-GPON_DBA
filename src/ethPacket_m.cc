@@ -181,6 +181,7 @@ void ethPacket::copy(const ethPacket& other)
     this->OltArrivalTime = other.OltArrivalTime;
     this->OnuId = other.OnuId;
     this->TContId = other.TContId;
+    this->FragmentCount = other.FragmentCount;
 }
 
 void ethPacket::parsimPack(omnetpp::cCommBuffer *b) const
@@ -192,6 +193,7 @@ void ethPacket::parsimPack(omnetpp::cCommBuffer *b) const
     doParsimPacking(b,this->OltArrivalTime);
     doParsimPacking(b,this->OnuId);
     doParsimPacking(b,this->TContId);
+    doParsimPacking(b,this->FragmentCount);
 }
 
 void ethPacket::parsimUnpack(omnetpp::cCommBuffer *b)
@@ -203,6 +205,7 @@ void ethPacket::parsimUnpack(omnetpp::cCommBuffer *b)
     doParsimUnpacking(b,this->OltArrivalTime);
     doParsimUnpacking(b,this->OnuId);
     doParsimUnpacking(b,this->TContId);
+    doParsimUnpacking(b,this->FragmentCount);
 }
 
 omnetpp::simtime_t ethPacket::getGenerationTime() const
@@ -265,6 +268,16 @@ void ethPacket::setTContId(int TContId)
     this->TContId = TContId;
 }
 
+int ethPacket::getFragmentCount() const
+{
+    return this->FragmentCount;
+}
+
+void ethPacket::setFragmentCount(int FragmentCount)
+{
+    this->FragmentCount = FragmentCount;
+}
+
 class ethPacketDescriptor : public omnetpp::cClassDescriptor
 {
   private:
@@ -276,6 +289,7 @@ class ethPacketDescriptor : public omnetpp::cClassDescriptor
         FIELD_OltArrivalTime,
         FIELD_OnuId,
         FIELD_TContId,
+        FIELD_FragmentCount,
     };
   public:
     ethPacketDescriptor();
@@ -342,7 +356,7 @@ const char *ethPacketDescriptor::getProperty(const char *propertyName) const
 int ethPacketDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
-    return base ? 6+base->getFieldCount() : 6;
+    return base ? 7+base->getFieldCount() : 7;
 }
 
 unsigned int ethPacketDescriptor::getFieldTypeFlags(int field) const
@@ -360,8 +374,9 @@ unsigned int ethPacketDescriptor::getFieldTypeFlags(int field) const
         FD_ISEDITABLE,    // FIELD_OltArrivalTime
         FD_ISEDITABLE,    // FIELD_OnuId
         FD_ISEDITABLE,    // FIELD_TContId
+        FD_ISEDITABLE,    // FIELD_FragmentCount
     };
-    return (field >= 0 && field < 6) ? fieldTypeFlags[field] : 0;
+    return (field >= 0 && field < 7) ? fieldTypeFlags[field] : 0;
 }
 
 const char *ethPacketDescriptor::getFieldName(int field) const
@@ -379,8 +394,9 @@ const char *ethPacketDescriptor::getFieldName(int field) const
         "OltArrivalTime",
         "OnuId",
         "TContId",
+        "FragmentCount",
     };
-    return (field >= 0 && field < 6) ? fieldNames[field] : nullptr;
+    return (field >= 0 && field < 7) ? fieldNames[field] : nullptr;
 }
 
 int ethPacketDescriptor::findField(const char *fieldName) const
@@ -393,6 +409,7 @@ int ethPacketDescriptor::findField(const char *fieldName) const
     if (strcmp(fieldName, "OltArrivalTime") == 0) return baseIndex + 3;
     if (strcmp(fieldName, "OnuId") == 0) return baseIndex + 4;
     if (strcmp(fieldName, "TContId") == 0) return baseIndex + 5;
+    if (strcmp(fieldName, "FragmentCount") == 0) return baseIndex + 6;
     return base ? base->findField(fieldName) : -1;
 }
 
@@ -411,8 +428,9 @@ const char *ethPacketDescriptor::getFieldTypeString(int field) const
         "omnetpp::simtime_t",    // FIELD_OltArrivalTime
         "int",    // FIELD_OnuId
         "int",    // FIELD_TContId
+        "int",    // FIELD_FragmentCount
     };
-    return (field >= 0 && field < 6) ? fieldTypeStrings[field] : nullptr;
+    return (field >= 0 && field < 7) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **ethPacketDescriptor::getFieldPropertyNames(int field) const
@@ -501,6 +519,7 @@ std::string ethPacketDescriptor::getFieldValueAsString(omnetpp::any_ptr object, 
         case FIELD_OltArrivalTime: return simtime2string(pp->getOltArrivalTime());
         case FIELD_OnuId: return long2string(pp->getOnuId());
         case FIELD_TContId: return long2string(pp->getTContId());
+        case FIELD_FragmentCount: return long2string(pp->getFragmentCount());
         default: return "";
     }
 }
@@ -523,6 +542,7 @@ void ethPacketDescriptor::setFieldValueAsString(omnetpp::any_ptr object, int fie
         case FIELD_OltArrivalTime: pp->setOltArrivalTime(string2simtime(value)); break;
         case FIELD_OnuId: pp->setOnuId(string2long(value)); break;
         case FIELD_TContId: pp->setTContId(string2long(value)); break;
+        case FIELD_FragmentCount: pp->setFragmentCount(string2long(value)); break;
         default: throw omnetpp::cRuntimeError("Cannot set field %d of class 'ethPacket'", field);
     }
 }
@@ -543,6 +563,7 @@ omnetpp::cValue ethPacketDescriptor::getFieldValue(omnetpp::any_ptr object, int 
         case FIELD_OltArrivalTime: return pp->getOltArrivalTime().dbl();
         case FIELD_OnuId: return pp->getOnuId();
         case FIELD_TContId: return pp->getTContId();
+        case FIELD_FragmentCount: return pp->getFragmentCount();
         default: throw omnetpp::cRuntimeError("Cannot return field %d of class 'ethPacket' as cValue -- field index out of range?", field);
     }
 }
@@ -565,6 +586,7 @@ void ethPacketDescriptor::setFieldValue(omnetpp::any_ptr object, int field, int 
         case FIELD_OltArrivalTime: pp->setOltArrivalTime(value.doubleValue()); break;
         case FIELD_OnuId: pp->setOnuId(omnetpp::checked_int_cast<int>(value.intValue())); break;
         case FIELD_TContId: pp->setTContId(omnetpp::checked_int_cast<int>(value.intValue())); break;
+        case FIELD_FragmentCount: pp->setFragmentCount(omnetpp::checked_int_cast<int>(value.intValue())); break;
         default: throw omnetpp::cRuntimeError("Cannot set field %d of class 'ethPacket'", field);
     }
 }

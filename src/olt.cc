@@ -113,19 +113,6 @@ void OLT::handleMessage(cMessage *msg)
             int onuId = pkt->getOnuId();
             int tcId = pkt->getTContId();
 
-            /* updating the current buffer status */
-            if(tcId==1) {
-                //onu_buffer_TC1[onuId] = onu_buffer_TC1[onuId] - pkt->getByteLength();
-                //EV << "[olt] updated onu_buffer_TC1[" << onuId << "] = " << onu_buffer_TC1[onuId] << endl;
-            }
-            else if(tcId==2) {
-                //onu_buffer_TC2[onuId] = onu_buffer_TC2[onuId] - pkt->getByteLength();
-                //EV << "[olt] updated onu_buffer_TC2[" << onuId << "] = " << onu_buffer_TC2[onuId] << endl;
-            }
-            else if(tcId==3) {
-                //onu_buffer_TC3[onuId] = onu_buffer_TC3[onuId] - pkt->getByteLength();
-                //EV << "[olt] updated onu_buffer_TC3[" << onuId << "] = " << onu_buffer_TC3[onuId] << endl;
-            }
             delete pkt;
         }
     }

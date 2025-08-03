@@ -22,4 +22,5 @@ packet ethPacket extends cPacket
     
     int OnuId;							// intended receipient ONU
     int TContId;						// T-CONT type
+    int FragmentCount = 0;				// id of fragmented packet
 }
