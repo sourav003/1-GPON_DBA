@@ -230,6 +230,7 @@ void gtc_header::copy(const gtc_header& other)
     this->BufferOccupancyTC1 = other.BufferOccupancyTC1;
     this->BufferOccupancyTC2 = other.BufferOccupancyTC2;
     this->BufferOccupancyTC3 = other.BufferOccupancyTC3;
+    this->SeqID = other.SeqID;
 }
 
 void gtc_header::parsimPack(omnetpp::cCommBuffer *b) const
@@ -255,6 +256,7 @@ void gtc_header::parsimPack(omnetpp::cCommBuffer *b) const
     doParsimPacking(b,this->BufferOccupancyTC1);
     doParsimPacking(b,this->BufferOccupancyTC2);
     doParsimPacking(b,this->BufferOccupancyTC3);
+    doParsimPacking(b,this->SeqID);
 }
 
 void gtc_header::parsimUnpack(omnetpp::cCommBuffer *b)
@@ -322,6 +324,7 @@ void gtc_header::parsimUnpack(omnetpp::cCommBuffer *b)
     doParsimUnpacking(b,this->BufferOccupancyTC1);
     doParsimUnpacking(b,this->BufferOccupancyTC2);
     doParsimUnpacking(b,this->BufferOccupancyTC3);
+    doParsimUnpacking(b,this->SeqID);
 }
 
 bool gtc_header::getDownlink() const
@@ -846,6 +849,16 @@ void gtc_header::setBufferOccupancyTC3(double BufferOccupancyTC3)
     this->BufferOccupancyTC3 = BufferOccupancyTC3;
 }
 
+long gtc_header::getSeqID() const
+{
+    return this->SeqID;
+}
+
+void gtc_header::setSeqID(long SeqID)
+{
+    this->SeqID = SeqID;
+}
+
 class gtc_headerDescriptor : public omnetpp::cClassDescriptor
 {
   private:
@@ -864,6 +877,7 @@ class gtc_headerDescriptor : public omnetpp::cClassDescriptor
         FIELD_BufferOccupancyTC1,
         FIELD_BufferOccupancyTC2,
         FIELD_BufferOccupancyTC3,
+        FIELD_SeqID,
     };
   public:
     gtc_headerDescriptor();
@@ -930,7 +944,7 @@ const char *gtc_headerDescriptor::getProperty(const char *propertyName) const
 int gtc_headerDescriptor::getFieldCount() const
 {
     omnetpp::cClassDescriptor *base = getBaseClassDescriptor();
-    return base ? 13+base->getFieldCount() : 13;
+    return base ? 14+base->getFieldCount() : 14;
 }
 
 unsigned int gtc_headerDescriptor::getFieldTypeFlags(int field) const
@@ -955,8 +969,9 @@ unsigned int gtc_headerDescriptor::getFieldTypeFlags(int field) const
         FD_ISEDITABLE,    // FIELD_BufferOccupancyTC1
         FD_ISEDITABLE,    // FIELD_BufferOccupancyTC2
         FD_ISEDITABLE,    // FIELD_BufferOccupancyTC3
+        FD_ISEDITABLE,    // FIELD_SeqID
     };
-    return (field >= 0 && field < 13) ? fieldTypeFlags[field] : 0;
+    return (field >= 0 && field < 14) ? fieldTypeFlags[field] : 0;
 }
 
 const char *gtc_headerDescriptor::getFieldName(int field) const
@@ -981,8 +996,9 @@ const char *gtc_headerDescriptor::getFieldName(int field) const
         "BufferOccupancyTC1",
         "BufferOccupancyTC2",
         "BufferOccupancyTC3",
+        "SeqID",
     };
-    return (field >= 0 && field < 13) ? fieldNames[field] : nullptr;
+    return (field >= 0 && field < 14) ? fieldNames[field] : nullptr;
 }
 
 int gtc_headerDescriptor::findField(const char *fieldName) const
@@ -1002,6 +1018,7 @@ int gtc_headerDescriptor::findField(const char *fieldName) const
     if (strcmp(fieldName, "BufferOccupancyTC1") == 0) return baseIndex + 10;
     if (strcmp(fieldName, "BufferOccupancyTC2") == 0) return baseIndex + 11;
     if (strcmp(fieldName, "BufferOccupancyTC3") == 0) return baseIndex + 12;
+    if (strcmp(fieldName, "SeqID") == 0) return baseIndex + 13;
     return base ? base->findField(fieldName) : -1;
 }
 
@@ -1027,8 +1044,9 @@ const char *gtc_headerDescriptor::getFieldTypeString(int field) const
         "double",    // FIELD_BufferOccupancyTC1
         "double",    // FIELD_BufferOccupancyTC2
         "double",    // FIELD_BufferOccupancyTC3
+        "long",    // FIELD_SeqID
     };
-    return (field >= 0 && field < 13) ? fieldTypeStrings[field] : nullptr;
+    return (field >= 0 && field < 14) ? fieldTypeStrings[field] : nullptr;
 }
 
 const char **gtc_headerDescriptor::getFieldPropertyNames(int field) const
@@ -1138,6 +1156,7 @@ std::string gtc_headerDescriptor::getFieldValueAsString(omnetpp::any_ptr object,
         case FIELD_BufferOccupancyTC1: return double2string(pp->getBufferOccupancyTC1());
         case FIELD_BufferOccupancyTC2: return double2string(pp->getBufferOccupancyTC2());
         case FIELD_BufferOccupancyTC3: return double2string(pp->getBufferOccupancyTC3());
+        case FIELD_SeqID: return long2string(pp->getSeqID());
         default: return "";
     }
 }
@@ -1167,6 +1186,7 @@ void gtc_headerDescriptor::setFieldValueAsString(omnetpp::any_ptr object, int fi
         case FIELD_BufferOccupancyTC1: pp->setBufferOccupancyTC1(string2double(value)); break;
         case FIELD_BufferOccupancyTC2: pp->setBufferOccupancyTC2(string2double(value)); break;
         case FIELD_BufferOccupancyTC3: pp->setBufferOccupancyTC3(string2double(value)); break;
+        case FIELD_SeqID: pp->setSeqID(string2long(value)); break;
         default: throw omnetpp::cRuntimeError("Cannot set field %d of class 'gtc_header'", field);
     }
 }
@@ -1194,6 +1214,7 @@ omnetpp::cValue gtc_headerDescriptor::getFieldValue(omnetpp::any_ptr object, int
         case FIELD_BufferOccupancyTC1: return pp->getBufferOccupancyTC1();
         case FIELD_BufferOccupancyTC2: return pp->getBufferOccupancyTC2();
         case FIELD_BufferOccupancyTC3: return pp->getBufferOccupancyTC3();
+        case FIELD_SeqID: return (omnetpp::intval_t)(pp->getSeqID());
         default: throw omnetpp::cRuntimeError("Cannot return field %d of class 'gtc_header' as cValue -- field index out of range?", field);
     }
 }
@@ -1223,6 +1244,7 @@ void gtc_headerDescriptor::setFieldValue(omnetpp::any_ptr object, int field, int
         case FIELD_BufferOccupancyTC1: pp->setBufferOccupancyTC1(value.doubleValue()); break;
         case FIELD_BufferOccupancyTC2: pp->setBufferOccupancyTC2(value.doubleValue()); break;
         case FIELD_BufferOccupancyTC3: pp->setBufferOccupancyTC3(value.doubleValue()); break;
+        case FIELD_SeqID: pp->setSeqID(omnetpp::checked_int_cast<long>(value.intValue())); break;
         default: throw omnetpp::cRuntimeError("Cannot set field %d of class 'gtc_header'", field);
     }
 }

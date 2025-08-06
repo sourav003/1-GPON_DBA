@@ -15,7 +15,6 @@
 #include "ethPacket_m.h"
 #include "ping_m.h"
 #include "gtc_header_m.h"
-#include "gtc_payload_m.h"
 
 using namespace std;
 using namespace omnetpp;
@@ -38,6 +37,7 @@ class OLT : public cSimpleModule
         vector<double> onu_tx_start_TC1;
         vector<double> onu_tx_start_TC2;
         vector<double> onu_tx_start_TC3;
+        long seqID = 0;
 
         int onus;
         int ping_count = 0;
@@ -132,7 +132,6 @@ void OLT::handleMessage(cMessage *msg)
                 cMessage *schedule_dl_gtc = new cMessage("schedule_dl_gtc");
                 scheduleAt(simTime(), schedule_dl_gtc);           // when ping from all ONUs arrive, initiate the grant scheduling process
 
-                double worst_rtt = *std::max_element(onu_rtt.begin(), onu_rtt.end());
                 onu_max_grant = floor((max_polling_cycle - T_guard*onus)*(pon_link_datarate/onus)/8);  // in Bytes
                 //EV << "[olt] worst_rtt = " << worst_rtt << ", onu_max_grant = " << onu_max_grant << endl;
                 for(int i = 0;i<onus;i++) {
@@ -151,6 +150,7 @@ void OLT::handleMessage(cMessage *msg)
             //EV << "[olt] total GTC DL Header size = " << gtc_hdr_sz << endl;
             gtc_hdr_dl->setByteLength(gtc_hdr_sz);
             gtc_hdr_dl->setDownlink(true);
+            gtc_hdr_dl->setSeqID(++seqID);
             gtc_hdr_dl->setOlt_onu_rttArraySize(onus);
             for (int i = 0; i < onus; ++i) {
                 gtc_hdr_dl->setOlt_onu_rtt(i, onu_rtt[i]);
@@ -158,18 +158,21 @@ void OLT::handleMessage(cMessage *msg)
 
             gtc_hdr_dl->setOnu_start_time_TC3ArraySize(onus);
             gtc_hdr_dl->setOnu_grant_TC3ArraySize(onus);
+
+            double worst_rtt = *std::max_element(onu_rtt.begin(), onu_rtt.end());
             double tx_start = 0;
             for(int i = 0;i<onus;i++) {
-                onu_grant_TC3[i] = min(onu_buffer_TC3[i],onu_max_grant);    // granting BW using limited service policy
+                onu_grant_TC3[i] = min(onu_buffer_TC3[i],onu_max_grant);      // granting BW using limited service policy
+                //onu_grant_TC3[i] = onu_max_grant;                               // granting BW using fixed service policy
                 onu_start_time_TC3[i] = tx_start + T_guard;
                 // filling into the header packet
                 gtc_hdr_dl->setOnu_start_time_TC3(i, onu_start_time_TC3[i]);
                 gtc_hdr_dl->setOnu_grant_TC3(i, onu_grant_TC3[i]);
 
                 tx_start += T_guard + (onu_grant_TC3[i]*8/pon_link_datarate);
-                EV << "[olt] onu_start_time_TC3[" << i << "] = " << onu_start_time_TC3[i] << endl;
+                EV << "[olt] onu_start_time_TC3[" << i << "] = " << simTime().dbl()+2*125e-6+onu_start_time_TC3[i]-(worst_rtt/2) << " for seqID = " << seqID << endl;
             }
-            EV << "[olt] last ONU tx finish time = " << tx_start + (onu_grant_TC3[onus]*8/pon_link_datarate) << endl;
+            EV << "[olt] last ONU tx finish time = " << simTime().dbl()+2*125e-6+onu_start_time_TC3[onus-1]-(worst_rtt/2)+(onu_grant_TC3[onus-1]*8/pon_link_datarate) << " for seqID = " << seqID << endl;
 
             send(gtc_hdr_dl,"SpltGate_o");          // sending the downlink GTC header to ONUs
 

@@ -46,6 +46,8 @@ packet gtc_header extends cPacket
     double BufferOccupancyTC2 = 0;				// 24 bits
     double BufferOccupancyTC3 = 0;				// 24 bits
     
+    long SeqID;
+    
     // int flags;						// 8 bits
     // int allocID;						// 12 bits
     // double timestamp;				// 20 bits - Local time value used for ranging and drift correction

@@ -15,7 +15,6 @@
 #include "ethPacket_m.h"
 #include "ping_m.h"
 #include "gtc_header_m.h"
-#include "gtc_payload_m.h"
 
 using namespace std;
 using namespace omnetpp;

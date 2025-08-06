@@ -53,6 +53,8 @@ class gtc_header;
  *     double BufferOccupancyTC2 = 0;				// 24 bits
  *     double BufferOccupancyTC3 = 0;				// 24 bits
  * 
+ *     long SeqID;
+ * 
  *     // int flags;						// 8 bits
  *     // int allocID;						// 12 bits
  *     // double timestamp;				// 20 bits - Local time value used for ranging and drift correction
@@ -82,6 +84,7 @@ class gtc_header : public ::omnetpp::cPacket
     double BufferOccupancyTC1 = 0;
     double BufferOccupancyTC2 = 0;
     double BufferOccupancyTC3 = 0;
+    long SeqID = 0;
 
   private:
     void copy(const gtc_header& other);
@@ -178,6 +181,9 @@ class gtc_header : public ::omnetpp::cPacket
 
     virtual double getBufferOccupancyTC3() const;
     virtual void setBufferOccupancyTC3(double BufferOccupancyTC3);
+
+    virtual long getSeqID() const;
+    virtual void setSeqID(long SeqID);
 };
 
 inline void doParsimPacking(omnetpp::cCommBuffer *b, const gtc_header& obj) {obj.parsimPack(b);}
