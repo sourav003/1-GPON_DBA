@@ -18,8 +18,9 @@ simple BackgroundDevice
     parameters:
         @display("i=device/pc");
         double load = default(0.5);						// this will vary as 0.05:0.05:1
-        double dataRate = default(1e9/16);				//max datarate in bps
-
+        //double dataRate = default(1e9/16);				//max datarate in bps
+        double dataRate = default(100e6);				//max datarate in bps
+        
         //@signal[generation](type="double");
         //@statistic[pkt_interval](title="packet inter-arrival time"; source="generation"; record=vector,stats; interpolationmode=none);
     gates:
