@@ -100,14 +100,26 @@ void OLT::handleMessage(cMessage *msg)
     if(msg->isPacket() == true) {
         if(strcmp(msg->getName(),"gtc_hdr_ul") == 0) {        // updating buffer size after receiving requests from ONUs
             gtc_header *pkt = check_and_cast<gtc_header *>(msg);
-            if(pkt->getBufferOccupancyTC3()) {
-                int onuId = pkt->getOnuID();
-                onu_buffer_TC3[onuId] = pkt->getBufferOccupancyTC3();
-                EV << "[olt] updated onu_buffer_TC3[" << onuId << "] = " << onu_buffer_TC3[onuId] << endl;
-            }
-            delete pkt;         // nothing to do with the header
+
+            int onuId = pkt->getOnuID();
+            // for T-CONT 2
+            onu_buffer_TC2[onuId] = pkt->getBufferOccupancyTC2();
+            EV << "[olt] updated onu_buffer_TC2[" << onuId << "] = " << onu_buffer_TC2[onuId] << endl;
+            // for T-CONT 3
+            onu_buffer_TC3[onuId] = pkt->getBufferOccupancyTC3();
+            EV << "[olt] updated onu_buffer_TC3[" << onuId << "] = " << onu_buffer_TC3[onuId] << endl;
+
+            delete pkt;         // nothing more to do with the header
         }
         else if(strcmp(msg->getName(),"bkg_data") == 0) {        // updating buffer size after receiving requests from ONUs
+            ethPacket *pkt = check_and_cast<ethPacket *>(msg);
+
+            int onuId = pkt->getOnuId();
+            int tcId = pkt->getTContId();
+
+            delete pkt;
+        }
+        else if(strcmp(msg->getName(),"xr_data") == 0) {        // updating buffer size after receiving requests from ONUs
             ethPacket *pkt = check_and_cast<ethPacket *>(msg);
 
             int onuId = pkt->getOnuId();
@@ -156,20 +168,39 @@ void OLT::handleMessage(cMessage *msg)
                 gtc_hdr_dl->setOlt_onu_rtt(i, onu_rtt[i]);
             }
 
+            gtc_hdr_dl->setOnu_start_time_TC2ArraySize(onus);
+            gtc_hdr_dl->setOnu_grant_TC2ArraySize(onus);
             gtc_hdr_dl->setOnu_start_time_TC3ArraySize(onus);
             gtc_hdr_dl->setOnu_grant_TC3ArraySize(onus);
 
             double worst_rtt = *std::max_element(onu_rtt.begin(), onu_rtt.end());
             double tx_start = 0;
+            double onu_max_grant_TC2 = 0;
+            double onu_max_grant_TC3 = onu_max_grant;
+
             for(int i = 0;i<onus;i++) {
-                onu_grant_TC3[i] = min(onu_buffer_TC3[i],onu_max_grant);      // granting BW using limited service policy
-                //onu_grant_TC3[i] = onu_max_grant;                               // granting BW using fixed service policy
-                onu_start_time_TC3[i] = tx_start + T_guard;
-                // filling into the header packet
+                if(onu_buffer_TC2[i] > 0) {                     // adjust priorities if TC-2 traffic is present
+                    onu_max_grant_TC2 = 0.8*onu_max_grant;
+                    onu_max_grant_TC3 = 0.2*onu_max_grant;
+                }
+
+                //onu_grant_TC2[i] = std::min(onu_buffer_TC2[i],onu_max_grant_TC2);      // granting BW using limited service policy
+                //onu_grant_TC3[i] = std::min(onu_buffer_TC3[i],onu_max_grant_TC3);
+                onu_grant_TC2[i] = 0;                             // granting BW using fixed service policy
+                onu_grant_TC3[i] = onu_max_grant;
+
+                // filling into the header packet for T-CONT 2
+                onu_start_time_TC2[i] = tx_start + T_guard;
+                gtc_hdr_dl->setOnu_start_time_TC2(i, onu_start_time_TC2[i]);
+                gtc_hdr_dl->setOnu_grant_TC2(i, onu_grant_TC2[i]);
+                // filling into the header packet for T-CONT 3
+                onu_start_time_TC3[i] = tx_start + T_guard + (onu_grant_TC2[i]*8/pon_link_datarate);
                 gtc_hdr_dl->setOnu_start_time_TC3(i, onu_start_time_TC3[i]);
                 gtc_hdr_dl->setOnu_grant_TC3(i, onu_grant_TC3[i]);
+                // shifting the tx_start cursor
+                tx_start += T_guard + (onu_grant_TC2[i]*8/pon_link_datarate) + (onu_grant_TC3[i]*8/pon_link_datarate);
 
-                tx_start += T_guard + (onu_grant_TC3[i]*8/pon_link_datarate);
+                EV << "[olt] onu_start_time_TC2[" << i << "] = " << simTime().dbl()+2*125e-6+onu_start_time_TC2[i]-(worst_rtt/2) << " for seqID = " << seqID << endl;
                 EV << "[olt] onu_start_time_TC3[" << i << "] = " << simTime().dbl()+2*125e-6+onu_start_time_TC3[i]-(worst_rtt/2) << " for seqID = " << seqID << endl;
             }
             EV << "[olt] last ONU tx finish time = " << simTime().dbl()+2*125e-6+onu_start_time_TC3[onus-1]-(worst_rtt/2)+(onu_grant_TC3[onus-1]*8/pon_link_datarate) << " for seqID = " << seqID << endl;
